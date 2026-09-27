@@ -1,31 +1,46 @@
-import os
 import json
+import re
+from pathlib import Path
+
+
+USERS_DIR = Path("users")
+USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,32}$")
+
 
 def default_portfolio():
-    portfolio = {
-    "current_balance": 100000,
-    "owned_stocks": {},
-    "transactions": []
-}
-    return portfolio
+    return {
+        "current_balance": 100000,
+        "owned_stocks": {},
+        "transactions": [],
+    }
+
+
+def portfolio_path(username):
+    username = username.strip()
+    if not USERNAME_PATTERN.fullmatch(username):
+        raise ValueError(
+            "Login names must be 1-32 characters and contain only letters, "
+            "numbers, hyphens, or underscores."
+        )
+    return USERS_DIR / username / "portfolio.json"
+
 
 def load_portfolio(username):
-    file_path = f"users/{username}/portfolio.json"
-    if os.path.exists(file_path):
-        with open(file_path, "r") as file:
-            loaded_portfolio = json.load(file)
-        return loaded_portfolio
-    else:
-        loaded_portfolio = default_portfolio()
-        save_portfolio(username, loaded_portfolio)
-        return loaded_portfolio
+    file_path = portfolio_path(username)
+    if file_path.exists():
+        with file_path.open("r", encoding="utf-8") as file:
+            return json.load(file)
 
+    portfolio = default_portfolio()
+    save_portfolio(username, portfolio)
+    return portfolio
 
 
 def save_portfolio(username, portfolio):
-    file_path = f"users/{username}/portfolio.json"
-    folder_path = os.path.dirname(file_path)
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-    with open(file_path, "w") as file:
-        json.dump(portfolio, file)
+    file_path = portfolio_path(username)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    temporary_path = file_path.with_suffix(".tmp")
+    with temporary_path.open("w", encoding="utf-8") as file:
+        json.dump(portfolio, file, indent=2)
+    temporary_path.replace(file_path)

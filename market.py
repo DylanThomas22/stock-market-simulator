@@ -1,45 +1,49 @@
 import requests
-import api
+
+from api import get_api_key
+
+
+QUOTE_URL = "https://finnhub.io/api/v1/quote"
+PROFILE_URL = "https://finnhub.io/api/v1/stock/profile2"
+REQUEST_TIMEOUT = 10
+
 
 def get_stock(ticker):
-    ticker = ticker.upper()
+    """Return the latest price and company name for a ticker, or None on failure."""
+    ticker = ticker.strip().upper()
+    if not ticker:
+        return None
+
+    request_params = {
+        "symbol": ticker,
+        "token": get_api_key(),
+    }
+
     try:
-        ticker_response = requests.get("https://finnhub.io/api/v1/quote", 
-                            params={
-                                "symbol": ticker,
-                                "token": api.key
-                            })
-    except requests.exceptions.RequestException:
-        return False
-    
-    if ticker_response.status_code == 200:
+        ticker_response = requests.get(
+            QUOTE_URL,
+            params=request_params,
+            timeout=REQUEST_TIMEOUT,
+        )
+        ticker_response.raise_for_status()
         ticker_data = ticker_response.json()
-        try:
-            price = ticker_data['c']
-        except KeyError:
-            return False
-        
-        try: 
-            company_response = requests.get("https://finnhub.io/api/v1/stock/profile2", 
-                                        params={
-                                            "symbol": ticker,
-                                            "token": api.key
-                                        })
-        except requests.exceptions.RequestException:
-            return False
-        if company_response.status_code == 200:
-            company_data = company_response.json()
+        price = ticker_data.get("c")
 
-            try:
-                company_name = company_data["name"]
-            except KeyError:
-                return False
+        company_response = requests.get(
+            PROFILE_URL,
+            params=request_params,
+            timeout=REQUEST_TIMEOUT,
+        )
+        company_response.raise_for_status()
+        company_data = company_response.json()
+        company_name = company_data.get("name")
+    except (requests.exceptions.RequestException, ValueError, TypeError):
+        return None
 
-            return {
-                "Name": company_name,
-                "Price": price
-            }
-        else:
-            return False
-    else:
-        return False
+    if not isinstance(price, (int, float)) or price <= 0 or not company_name:
+        return None
+
+    return {
+        "Name": company_name,
+        "Price": float(price),
+    }

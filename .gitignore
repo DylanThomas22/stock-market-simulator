@@ -11,6 +11,9 @@ __pycache__/
 .venv/
 venv/
 
+# Editors
+.vscode/
+
 # Test and tool caches
 .pytest_cache/
 .ruff_cache/

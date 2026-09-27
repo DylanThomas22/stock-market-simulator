@@ -1,27 +1,35 @@
 import portfolio
 import storage
-import market
+
+from api import get_api_key
+
 
 def login():
-    username = input("Enter Login Name: ")
-    active_portfolio = storage.load_portfolio(username)
-    return username, active_portfolio
+    while True:
+        username = input("Enter login name: ").strip()
+        try:
+            active_portfolio = storage.load_portfolio(username)
+        except ValueError as error:
+            print(error)
+            continue
+        return username, active_portfolio
+
 
 def main_menu(username, active_portfolio):
-
     while True:
-        print("What option would you like to select:\n"
-                  "1.Buy Stock\n"
-                  "2.Sell Stock\n"
-                  "3.View Portfolio\n"
-                  "4.View Transaction History\n"
-                  "5.Quit\n")
-            
+        print(
+            "\nWhat would you like to do?\n"
+            "1. Buy stock\n"
+            "2. Sell stock\n"
+            "3. View portfolio\n"
+            "4. View transaction history\n"
+            "5. Quit\n"
+        )
 
         try:
-            main_menu_choice = int(input())
+            main_menu_choice = int(input("Select an option: "))
         except ValueError:
-            print("Please enter a number")
+            print("Please enter a number from 1 to 5.")
             continue
 
         if main_menu_choice == 1:
@@ -38,9 +46,19 @@ def main_menu(username, active_portfolio):
             print("Thank you, goodbye!")
             break
         else:
-            print("Invalid Choice")
-            
-        
-    
-username, active_portfolio = login()
-main_menu(username, active_portfolio)
+            print("Invalid choice. Please enter a number from 1 to 5.")
+
+
+def main():
+    try:
+        get_api_key()
+    except RuntimeError as error:
+        print(error)
+        return
+
+    username, active_portfolio = login()
+    main_menu(username, active_portfolio)
+
+
+if __name__ == "__main__":
+    main()
